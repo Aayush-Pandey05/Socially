@@ -39,7 +39,7 @@ function NotificationsPage() {
         const data = await getNotifications();
         setNotifications(data);
 
-        const unreadIds = data.filter((n) => !n.read).map((n) => n.id);
+        const unreadIds = data.filter((n: Notification) => !n.read).map((n) => n.id);
         if (unreadIds.length > 0) {
           markNotificationAsRead(unreadIds);
         }
