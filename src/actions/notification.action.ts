@@ -1,7 +1,7 @@
 "use server";
 
 import { getDbUserId } from "./user.action";
-import { prisma } from "@/lib/prisma";
+import  {prisma}  from "@/lib/prisma";
 
 export async function getNotifications() {
   try {

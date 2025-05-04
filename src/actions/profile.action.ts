@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { getDbUserId } from "./user.action";
-import { prisma } from "@/lib/prisma";
+import  {prisma}  from "@/lib/prisma";
 
 export async function getProfileByUsername(username: string) {
   try {
