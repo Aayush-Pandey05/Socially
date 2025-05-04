@@ -40,8 +40,8 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
     if (isLiking) return;
     try {
       setIsLiking(true);
-      setHasLiked((prev) => !prev); // this will take the previous state and toggle it
-      setOptimisticLikes((prev) => prev + (hasLiked ? -1 : 1)); // if the user has already liked the post than we will remove the like on the second click
+      setHasLiked((prev:any) => !prev); // this will take the previous state and toggle it
+      setOptimisticLikes((prev: any) => prev + (hasLiked ? -1 : 1)); // if the user has already liked the post than we will remove the like on the second click
       await toggleLike(post.id);
     } catch (error) {
       setOptimisticLikes(post._count.likes);
@@ -175,7 +175,7 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               variant="ghost"
               size="sm"
               className="text-muted-foreground gap-2 hover:text-blue-500"
-              onClick={() => setShowComments((prev) => !prev)}
+              onClick={() => setShowComments((prev:any) => !prev)}
             >
               <MessageCircleIcon
                 className={`size-5 ${
