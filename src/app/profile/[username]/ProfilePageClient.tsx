@@ -209,7 +209,7 @@ function ProfilePageClient({
           <TabsContent value="posts" className="mt-6">
             <div className="space-y-6">
               {posts.length > 0 ? (
-                posts.map((post) => (
+                posts.map((post:any) => (
                   <POstCard key={post.id} post={post} dbUserId={user.id} />
                 ))
               ) : (
@@ -223,7 +223,7 @@ function ProfilePageClient({
           <TabsContent value="likes" className="mt-6">
             <div className="space-y-6">
               {likedPosts.length > 0 ? (
-                likedPosts.map((post) => (
+                likedPosts.map((post:any) => (
                   <POstCard key={post.id} post={post} dbUserId={user.id} />
                 ))
               ) : (
