@@ -39,7 +39,9 @@ function NotificationsPage() {
         const data = await getNotifications();
         setNotifications(data);
 
-        const unreadIds = data.filter((n: Notification) => !n.read).map((n) => n.id);
+        const unreadIds = data
+          .filter((n: Notification) => !n.read)
+          .map((n: Notification) => n.id);
         if (unreadIds.length > 0) {
           markNotificationAsRead(unreadIds);
         }
@@ -126,7 +128,7 @@ function NotificationsPage() {
                       )}
 
                     <p className="text-sm text-muted-foreground pl-6">
-                      {formatDistanceToNow (new Date(notification.createdAt), {
+                      {formatDistanceToNow(new Date(notification.createdAt), {
                         addSuffix: true,
                       })}
                     </p>
