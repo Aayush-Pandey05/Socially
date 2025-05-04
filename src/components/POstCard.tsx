@@ -28,7 +28,7 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [hasLiked, setHasLiked] = useState(
-    post.likes.some((like) => like.userId === dbUserId)
+    post.likes.some((like: any) => like.userId === dbUserId)
   ); // If the current user's ID (dbUserId) is found among the post’s likes, some() returns true.
   const [optimisticLikes, setOptimisticLikes] = useState(post._count.likes);
   const [showComments, setShowComments] = useState(false); // to show the comments on the post
