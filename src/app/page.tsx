@@ -6,6 +6,9 @@ import { getPosts } from "@/actions/post.action";
 import { getDbUserId } from "@/actions/user.action";
 
 
+type Posts = Awaited<ReturnType<typeof getPosts>>;
+type Post = Posts[number];
+
 export default async function Home() {
 
   const user = await currentUser();
@@ -19,7 +22,7 @@ export default async function Home() {
         {user? <CreatePost/> : null}
 
         <div className="space-y-6">
-          {posts.map((post)=>(
+          {posts.map((post:Post)=>(
             <POstCard key={post.id} post={post} dbUserId={dbUserId}/>
           ))}
         </div>
