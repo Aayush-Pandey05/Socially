@@ -5,7 +5,7 @@ import { PrismaClient } from "@prisma/client";
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 // Hardcode the URL directly in the file as a fallback
-const dbUrl = "postgresql://neondb_owner:npg_LDrOg5Yjl3RJ@ep-proud-feather-a5cnqhw4-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require";
+const dbUrl = "neon_db_database";
 
 // Create a new Prisma Client instance
 export const prisma = 
