@@ -1,25 +1,15 @@
-// lib/prisma.ts
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/generated/prisma";
 
-// Prevent multiple instances during development
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-// Hardcode the URL directly in the file as a fallback
-const dbUrl = "neon_db_database";
-
-// Create a new Prisma Client instance
-export const prisma = 
-  globalForPrisma.prisma || 
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: dbUrl,
-      },
-    },
-  });
-
-// Check if we're in development mode
-// Use simple string comparison instead of process.env
-if (typeof window === "undefined" && !globalForPrisma.prisma) {
-  globalForPrisma.prisma = prisma;
+declare global {
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined;
 }
+
+const prisma = globalThis.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.prisma = prisma;
+}
+
+export { prisma };
+export default prisma;

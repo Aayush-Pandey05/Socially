@@ -1,20 +1,61 @@
-import { currentUser } from "@clerk/nextjs/server"
+"use client";
+
+import { useEffect, useState } from "react";
+import { useUser, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "./ui/button";
-import { getUserbyClerkId } from "@/actions/user.action";
 import Link from "next/link";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { Separator } from "./ui/separator";
 import { LinkIcon, MapPinIcon } from "lucide-react";
+import { getUserbyClerkId, syncUser } from "@/actions/user.action";
 
-async function Sidebar() {
+type DbUser = NonNullable<Awaited<ReturnType<typeof getUserbyClerkId>>>;
 
-  const authUser = await currentUser();
-  if (!authUser) return <UnAuthenticatedSidebar />;
+function Sidebar() {
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [dbUser, setDbUser] = useState<DbUser | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-  const user = await getUserbyClerkId(authUser.id);
-  if (!user) return null;
+  useEffect(() => {
+    let isActive = true;
+
+    const loadUser = async () => {
+      if (!isLoaded) return;
+
+      if (!isSignedIn || !user) {
+        if (isActive) {
+          setDbUser(null);
+          setIsLoadingUser(false);
+        }
+        return;
+      }
+
+      try {
+        setIsLoadingUser(true);
+        await syncUser();
+        const currentDbUser = await getUserbyClerkId(user.id);
+
+        if (isActive) {
+          setDbUser(currentDbUser);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingUser(false);
+        }
+      }
+    };
+
+    void loadUser();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isLoaded, isSignedIn, user]);
+
+  if (!isLoaded || isLoadingUser) return <LoadingSidebar />;
+  if (!isSignedIn) return <UnAuthenticatedSidebar />;
+  if (!dbUser) return null;
 
   // console.log({user});
 
@@ -28,27 +69,31 @@ async function Sidebar() {
               className="flex flex-col items-center justify-center"
             >
               <Avatar className="w-20 h-20 border-2 ">
-                <AvatarImage src={user.image || "/avatar.png"} />
+                <AvatarImage src={dbUser.image || "/avatar.png"} />
               </Avatar>
 
               <div className="mt-4 space-y-1">
-                <h3 className="font-semibold">{user.name}</h3>
-                <p className="text-sm text-muted-foreground">{user.username}</p>
+                <h3 className="font-semibold">{dbUser.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {dbUser.username}
+                </p>
               </div>
             </Link>
 
-            {user.bio && <p className="mt-3 text-sm text-muted-foreground">{user.bio}</p>}
+            {dbUser.bio && (
+              <p className="mt-3 text-sm text-muted-foreground">{dbUser.bio}</p>
+            )}
 
             <div className="w-full">
               <Separator className="my-4" />
               <div className="flex justify-between">
                 <div>
-                  <p className="font-medium">{user._count.following}</p>
+                  <p className="font-medium">{dbUser._count.following}</p>
                   <p className="text-xs text-muted-foreground">Following</p>
                 </div>
                 <Separator orientation="vertical" />
                 <div>
-                  <p className="font-medium">{user._count.followers}</p>
+                  <p className="font-medium">{dbUser._count.followers}</p>
                   <p className="text-xs text-muted-foreground">Followers</p>
                 </div>
               </div>
@@ -58,13 +103,17 @@ async function Sidebar() {
             <div className="w-full space-y-2 text-sm">
               <div className="flex items-center text-muted-foreground">
                 <MapPinIcon className="w-4 h-4 mr-2" />
-                {user.location || "No location"}
+                {dbUser.location || "No location"}
               </div>
               <div className="flex items-center text-muted-foreground">
                 <LinkIcon className="w-4 h-4 mr-2 shrink-0" />
-                {user.website ? (
-                  <a href={`${user.website}`} className="hover:underline truncate" target="_blank">
-                    {user.website}
+                {dbUser.website ? (
+                  <a
+                    href={`${dbUser.website}`}
+                    className="hover:underline truncate"
+                    target="_blank"
+                  >
+                    {dbUser.website}
                   </a>
                 ) : (
                   "No website"
@@ -75,16 +124,36 @@ async function Sidebar() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
-export default Sidebar
+export default Sidebar;
+
+const LoadingSidebar = () => (
+  <div className="sticky top-20">
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-4 animate-pulse">
+          <div className="mx-auto h-20 w-20 rounded-full bg-muted" />
+          <div className="space-y-2 text-center">
+            <div className="mx-auto h-4 w-32 rounded bg-muted" />
+            <div className="mx-auto h-3 w-20 rounded bg-muted" />
+          </div>
+          <div className="h-16 rounded bg-muted" />
+          <div className="h-10 rounded bg-muted" />
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+);
 
 const UnAuthenticatedSidebar = () => (
   <div className="sticky top-20">
     <Card>
       <CardHeader>
-        <CardTitle className="text-center text-xl font-semibold">Welcome Back!</CardTitle>
+        <CardTitle className="text-center text-xl font-semibold">
+          Welcome Back!
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-center text-muted-foreground mb-4">
