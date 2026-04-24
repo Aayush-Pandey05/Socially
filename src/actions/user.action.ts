@@ -1,5 +1,5 @@
 "use server";
-import  {prisma}  from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -12,6 +12,11 @@ export async function syncUser() {
 
     if (!userId || !user) return; // if user is not authenticated, return
 
+    const primaryEmail =
+      user.primaryEmailAddress?.emailAddress ||
+      user.emailAddresses[0]?.emailAddress;
+    if (!primaryEmail) return null;
+
     const existingUser = await prisma.user.findUnique({
       where: {
         clerkId: userId,
@@ -20,19 +25,37 @@ export async function syncUser() {
 
     if (existingUser) return existingUser; // if user already exists in the database, return it
 
-    if (!userId || !user) return;
+    const baseUsername =
+      (user.username ?? primaryEmail.split("@")[0])
+        .replace(/[^a-zA-Z0-9_]/g, "")
+        .slice(0, 20) || `user${userId.slice(-6)}`;
+
+    let candidateUsername = baseUsername;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const usernameTaken = await prisma.user.findUnique({
+        where: { username: candidateUsername },
+        select: { id: true },
+      });
+
+      if (!usernameTaken) break;
+      candidateUsername = `${baseUsername}${Math.floor(Math.random() * 9000) + 1000}`;
+    }
 
     const dbUser = await prisma.user.create({
       data: {
         clerkId: userId,
         name: `${user.firstName || ""} ${user.lastName || ""}`,
-        username:
-          user.username ?? user.emailAddresses[0].emailAddress.split("@")[0],
-        email: user.emailAddresses[0].emailAddress,
+        username: candidateUsername,
+        email: primaryEmail,
         image: user.imageUrl,
       },
     });
-  } catch (error) {}
+
+    return dbUser;
+  } catch (error) {
+    console.error("Error syncing user:", error);
+    return null;
+  }
 }
 
 export async function getUserbyClerkId(clerkId: string) {
@@ -58,8 +81,12 @@ export async function getDbUserId() {
   const { userId: clerkId } = await auth();
   if (!clerkId) return null;
 
-  const user = await getUserbyClerkId(clerkId);
-  if (!user) throw new Error("User not found");
+  let user = await getUserbyClerkId(clerkId);
+  if (!user) {
+    await syncUser();
+    user = await getUserbyClerkId(clerkId);
+  }
+  if (!user) return null;
 
   return user.id;
 }
