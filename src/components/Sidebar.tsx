@@ -39,6 +39,11 @@ function Sidebar() {
         if (isActive) {
           setDbUser(currentDbUser);
         }
+      } catch (error) {
+        console.error("Error loading sidebar user:", error);
+        if (isActive) {
+          setDbUser(null);
+        }
       } finally {
         if (isActive) {
           setIsLoadingUser(false);
@@ -55,7 +60,7 @@ function Sidebar() {
 
   if (!isLoaded || isLoadingUser) return <LoadingSidebar />;
   if (!isSignedIn) return <UnAuthenticatedSidebar />;
-  if (!dbUser) return null;
+  if (!dbUser) return <LoadingSidebar />;
 
   // console.log({user});
 
@@ -65,7 +70,7 @@ function Sidebar() {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center">
             <Link
-              href={`/profile/${user.username}`}
+              href={`/profile/${dbUser.username}`}
               className="flex flex-col items-center justify-center"
             >
               <Avatar className="w-20 h-20 border-2 ">

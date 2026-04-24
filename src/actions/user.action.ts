@@ -3,6 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
+function buildUniqueUsername(base: string, clerkId: string) {
+  const sanitized = base.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase() || "user";
+  const suffix = clerkId.slice(-6).toLowerCase();
+  const trimmedBase = sanitized.slice(0, 16);
+  return `${trimmedBase}_${suffix}`;
+}
+
 // this will amke sure that this code will be running on the server
 
 export async function syncUser() {
@@ -17,34 +24,21 @@ export async function syncUser() {
       user.emailAddresses[0]?.emailAddress;
     if (!primaryEmail) return null;
 
-    const existingUser = await prisma.user.findUnique({
+    const preferredBase = user.username ?? primaryEmail.split("@")[0] ?? "user";
+    const candidateUsername = buildUniqueUsername(preferredBase, userId);
+
+    const dbUser = await prisma.user.upsert({
       where: {
         clerkId: userId,
       },
-    });
-
-    if (existingUser) return existingUser; // if user already exists in the database, return it
-
-    const baseUsername =
-      (user.username ?? primaryEmail.split("@")[0])
-        .replace(/[^a-zA-Z0-9_]/g, "")
-        .slice(0, 20) || `user${userId.slice(-6)}`;
-
-    let candidateUsername = baseUsername;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const usernameTaken = await prisma.user.findUnique({
-        where: { username: candidateUsername },
-        select: { id: true },
-      });
-
-      if (!usernameTaken) break;
-      candidateUsername = `${baseUsername}${Math.floor(Math.random() * 9000) + 1000}`;
-    }
-
-    const dbUser = await prisma.user.create({
-      data: {
+      update: {
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        email: primaryEmail,
+        image: user.imageUrl,
+      },
+      create: {
         clerkId: userId,
-        name: `${user.firstName || ""} ${user.lastName || ""}`,
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
         username: candidateUsername,
         email: primaryEmail,
         image: user.imageUrl,
@@ -86,7 +80,10 @@ export async function getDbUserId() {
     await syncUser();
     user = await getUserbyClerkId(clerkId);
   }
-  if (!user) return null;
+  if (!user) {
+    console.error("Unable to resolve DB user for clerkId", clerkId);
+    return null;
+  }
 
   return user.id;
 }
