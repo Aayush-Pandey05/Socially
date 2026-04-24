@@ -47,26 +47,30 @@ export async function getNotifications() {
     return notifications;
   } catch (error) {
     console.error("Error fetching notifications:", error);
-    throw new Error("Failed to fetch notifications");
+    return [];
   }
 }
 
 export async function markNotificationAsRead(notificationIds: string[]) {
-    try {
-        await prisma.notification.updateMany({
-            where:{
-                id:{
-                    in: notificationIds,
-                },
-            },
-            data:{
-                read:true,
-            },
-        });
-
-        return {success:true};
-    } catch (error) {
-        console.error("Error marking notifications as read:", error);
-        return {success:false};
+  try {
+    if (notificationIds.length === 0) {
+      return { success: true };
     }
+
+    await prisma.notification.updateMany({
+      where: {
+        id: {
+          in: notificationIds,
+        },
+      },
+      data: {
+        read: true,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking notifications as read:", error);
+    return { success: false };
+  }
 }

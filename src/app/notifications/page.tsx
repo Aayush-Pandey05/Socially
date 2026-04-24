@@ -43,10 +43,11 @@ function NotificationsPage() {
           .filter((n: Notification) => !n.read)
           .map((n: Notification) => n.id);
         if (unreadIds.length > 0) {
-          markNotificationAsRead(unreadIds);
+          await markNotificationAsRead(unreadIds);
         }
       } catch (error) {
-        toast.error("Error fetching notifications");
+        console.error("Error loading notifications:", error);
+        toast.error("Error loading notifications");
       } finally {
         setIsLoading(false);
       }
