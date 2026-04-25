@@ -1,11 +1,11 @@
 "use server";
 
 import { getDbUserId } from "./user.action";
-import  {prisma}  from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
-export async function getNotifications() {
+export async function getNotifications(clerkId?: string) {
   try {
-    const userId = await getDbUserId();
+    const userId = await getDbUserId(clerkId);
     if (!userId) {
       return [];
     }

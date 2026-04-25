@@ -12,6 +12,8 @@ import { formatDistanceToNow } from "date-fns";
 import { HeartIcon, MessageCircle, UserPlusIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { useUser } from "@clerk/nextjs";
+import { syncUser } from "@/actions/user.action";
 
 type Notifications = Awaited<ReturnType<typeof getNotifications>>;
 type Notification = Notifications[number];
@@ -30,13 +32,18 @@ const getNotificationIcon = (type: string) => {
 };
 
 function NotificationsPage() {
+  const { user } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const data = await getNotifications();
+        if (user) {
+          await syncUser(user);
+        }
+
+        const data = await getNotifications(user?.id);
         setNotifications(data);
 
         const unreadIds = data
@@ -53,8 +60,15 @@ function NotificationsPage() {
       }
     };
 
-    fetchNotifications();
-  }, []);
+    if (user) {
+      fetchNotifications();
+      return;
+    }
+
+    if (user === null) {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   if (isLoading) return <NotificationsSkeleton />;
 
@@ -99,8 +113,8 @@ function NotificationsPage() {
                         {notification.type === "FOLLOW"
                           ? "started following you"
                           : notification.type === "LIKE"
-                          ? "liked your post"
-                          : "commented on your post"}
+                            ? "liked your post"
+                            : "commented on your post"}
                       </span>
                     </div>
 

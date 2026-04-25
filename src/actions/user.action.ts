@@ -10,38 +10,64 @@ function buildUniqueUsername(base: string, clerkId: string) {
   return `${trimmedBase}_${suffix}`;
 }
 
+type ClerkUserPayload = {
+  id?: string;
+  clerkId?: string;
+  email?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  username?: string | null;
+  imageUrl?: string | null;
+  primaryEmailAddress?: { emailAddress: string | null } | null;
+  emailAddresses?: Array<{ emailAddress: string }>;
+};
+
 // this will amke sure that this code will be running on the server
 
-export async function syncUser() {
+export async function syncUser(fallbackUser?: ClerkUserPayload) {
   try {
     const { userId } = await auth();
     const user = await currentUser();
 
-    if (!userId || !user) return; // if user is not authenticated, return
+    const resolvedClerkId = userId ?? fallbackUser?.clerkId ?? fallbackUser?.id;
+    if (!resolvedClerkId) return null;
 
     const primaryEmail =
-      user.primaryEmailAddress?.emailAddress ||
-      user.emailAddresses[0]?.emailAddress;
+      user?.primaryEmailAddress?.emailAddress ||
+      user?.emailAddresses[0]?.emailAddress ||
+      fallbackUser?.primaryEmailAddress?.emailAddress ||
+      fallbackUser?.email ||
+      fallbackUser?.emailAddresses?.[0]?.emailAddress;
     if (!primaryEmail) return null;
 
-    const preferredBase = user.username ?? primaryEmail.split("@")[0] ?? "user";
-    const candidateUsername = buildUniqueUsername(preferredBase, userId);
+    const preferredBase =
+      user?.username ??
+      fallbackUser?.username ??
+      primaryEmail.split("@")[0] ??
+      "user";
+    const candidateUsername = buildUniqueUsername(preferredBase, resolvedClerkId);
 
     const dbUser = await prisma.user.upsert({
       where: {
-        clerkId: userId,
+        clerkId: resolvedClerkId,
       },
       update: {
-        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        name:
+          `${user?.firstName || fallbackUser?.firstName || ""} ${
+            user?.lastName || fallbackUser?.lastName || ""
+          }`.trim(),
         email: primaryEmail,
-        image: user.imageUrl,
+        image: user?.imageUrl || fallbackUser?.imageUrl || null,
       },
       create: {
-        clerkId: userId,
-        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        clerkId: resolvedClerkId,
+        name:
+          `${user?.firstName || fallbackUser?.firstName || ""} ${
+            user?.lastName || fallbackUser?.lastName || ""
+          }`.trim(),
         username: candidateUsername,
         email: primaryEmail,
-        image: user.imageUrl,
+        image: user?.imageUrl || fallbackUser?.imageUrl || null,
       },
     });
 
@@ -85,17 +111,18 @@ export async function getUserbyClerkId(clerkId: string) {
   });
 }
 
-export async function getDbUserId() {
-  const { userId: clerkId } = await auth();
-  if (!clerkId) return null;
+export async function getDbUserId(clerkId?: string) {
+  const { userId: authUserId } = await auth();
+  const resolvedClerkId = clerkId ?? authUserId;
+  if (!resolvedClerkId) return null;
 
-  let user = await getUserbyClerkId(clerkId);
+  let user = await getUserbyClerkId(resolvedClerkId);
   if (!user) {
-    await syncUser();
-    user = await getUserbyClerkId(clerkId);
+    await syncUser({ clerkId: resolvedClerkId });
+    user = await getUserbyClerkId(resolvedClerkId);
   }
   if (!user) {
-    console.error("Unable to resolve DB user for clerkId", clerkId);
+    console.error("Unable to resolve DB user for clerkId", resolvedClerkId);
     return null;
   }
 
@@ -145,10 +172,10 @@ export async function getRandomUsers() {
   }
 }
 
-export async function toggleFollow(targetUserId: string) {
+export async function toggleFollow(targetUserId: string, clerkId?: string) {
   try {
-    const userId = await getDbUserId();
-    if (!userId) return;
+    const userId = await getDbUserId(clerkId);
+    if (!userId) return { success: false, error: "User not found" };
     if (userId === targetUserId) throw new Error("You can't follow yourself"); // we cant follow ourselfs
     const existingFollow = await prisma.follows.findUnique({
       where: {
@@ -194,6 +221,6 @@ export async function toggleFollow(targetUserId: string) {
     return { success: true };
   } catch (error) {
     console.log("Error in toggleFollow", error);
-    return { success: false, error };
+    return { success: false, error: "Failed to toggle follow" };
   }
 }

@@ -6,6 +6,7 @@ import {
   getPosts,
   toggleLike,
 } from "@/actions/post.action";
+import { syncUser } from "@/actions/user.action";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
@@ -40,9 +41,15 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
     if (isLiking) return;
     try {
       setIsLiking(true);
+      if (user) {
+        await syncUser(user);
+      }
       setHasLiked((prev:any) => !prev); // this will take the previous state and toggle it
       setOptimisticLikes((prev: any) => prev + (hasLiked ? -1 : 1)); // if the user has already liked the post than we will remove the like on the second click
-      await toggleLike(post.id);
+      const result = await toggleLike(post.id, user?.id);
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to toggle like");
+      }
     } catch (error) {
       setOptimisticLikes(post._count.likes);
       setHasLiked(false);
@@ -55,7 +62,10 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
     if (!newComment.trim() || isCommenting) return;
     try {
       setIscommenting(true);
-      const result = await createComment(post.id, newComment);
+      if (user) {
+        await syncUser(user);
+      }
+      const result = await createComment(post.id, newComment, user?.id);
       if (result?.success) {
         toast.success("Comment added successfully");
         setNewComment("");

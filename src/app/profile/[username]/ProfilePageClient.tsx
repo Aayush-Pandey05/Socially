@@ -6,6 +6,7 @@ import {
   updateProfile,
 } from "@/actions/profile.action";
 import { toggleFollow } from "@/actions/user.action";
+import { syncUser } from "@/actions/user.action";
 import { SignInButton, useUser } from "@clerk/nextjs";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
@@ -67,7 +68,11 @@ function ProfilePageClient({
 
     try {
       setIsUpdatingFollow(true);
-      await toggleFollow(user.id);
+      await syncUser(currentUser);
+      const result = await toggleFollow(user.id, currentUser.id);
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to update the follow status");
+      }
       setIsFollowing(!isFollowing);
     } catch (error) {
       toast.error("Failed to update the follow status");

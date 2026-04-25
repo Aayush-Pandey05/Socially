@@ -8,6 +8,7 @@ import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { ImageIcon, Loader2Icon, SendIcon } from "lucide-react";
 import { createPost } from "@/actions/post.action";
+import { syncUser } from "@/actions/user.action";
 import toast from "react-hot-toast";
 import ImageUpload from "./ImageUplaod";
 
@@ -24,7 +25,11 @@ function CreatePost() {
     setIsPosting(true);
 
     try {
-      const result = await createPost(content, imageUrl);
+      if (user) {
+        await syncUser(user);
+      }
+
+      const result = await createPost(content, imageUrl, user?.id);
       if(result?.success){
         // reset the form 
         setContent("");

@@ -1,20 +1,30 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Loader2Icon } from "lucide-react";
 import toast from "react-hot-toast";
-import { toggleFollow } from "@/actions/user.action";
+import { syncUser, toggleFollow } from "@/actions/user.action";
 
 function FollowButton({userId}: {userId: string}) {
+  const { user } = useUser();
 
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFollow = async () =>{
     setIsLoading(true);
     try {
-        await toggleFollow(userId);
-        toast.success("Followed user successfully");
+        if (user) {
+          await syncUser(user);
+        }
+
+        const result = await toggleFollow(userId, user?.id);
+        if (result?.success) {
+          toast.success("Followed user successfully");
+        } else {
+          toast.error(result?.error || "Failed to follow user");
+        }
     } catch (error) {
         toast.error("Failed to follow user");
     } finally{

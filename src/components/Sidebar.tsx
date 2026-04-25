@@ -33,7 +33,7 @@ function Sidebar() {
 
       try {
         setIsLoadingUser(true);
-        await syncUser();
+        await syncUser(user);
         const currentDbUser = await getUserbyClerkId(user.id);
 
         if (isActive) {

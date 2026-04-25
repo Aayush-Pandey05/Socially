@@ -5,11 +5,14 @@ import { getDbUserId } from "./user.action";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma";
 
-export async function createPost(content: string, imageUrl: string) {
+export async function createPost(
+  content: string,
+  imageUrl?: string,
+  clerkId?: string
+) {
   try {
-    const userId = await getDbUserId();
-
-    if (!userId) return;
+    const userId = await getDbUserId(clerkId);
+    if (!userId) return { success: false, error: "User not found" };
 
     const post = await prisma.post.create({
       data: {
@@ -62,7 +65,6 @@ export async function getPosts() {
             userId: true,
           },
         },
-
         _count: {
           select: {
             comments: true,
@@ -78,12 +80,11 @@ export async function getPosts() {
   }
 }
 
-export async function toggleLike(postId: string) {
+export async function toggleLike(postId: string, clerkId?: string) {
   try {
-    const userId = await getDbUserId();
-    if (!userId) return;
+    const userId = await getDbUserId(clerkId);
+    if (!userId) return { success: false, error: "User not found" };
 
-    // check if like exists
     const existingLike = await prisma.like.findUnique({
       where: {
         userId_postId: {
@@ -101,7 +102,6 @@ export async function toggleLike(postId: string) {
     if (!post) throw new Error("Post not found");
 
     if (existingLike) {
-      // unlike
       await prisma.like.delete({
         where: {
           userId_postId: {
@@ -111,7 +111,6 @@ export async function toggleLike(postId: string) {
         },
       });
     } else {
-      // like and create notification (only if liking someone else's post)
       await prisma.$transaction([
         prisma.like.create({
           data: {
@@ -124,8 +123,8 @@ export async function toggleLike(postId: string) {
               prisma.notification.create({
                 data: {
                   type: "LIKE",
-                  userId: post.authorId, // recipient (post author)
-                  creatorId: userId, // person who liked
+                  userId: post.authorId,
+                  creatorId: userId,
                   postId,
                 },
               }),
@@ -142,11 +141,14 @@ export async function toggleLike(postId: string) {
   }
 }
 
-export async function createComment(postId: string, content: string) {
+export async function createComment(
+  postId: string,
+  content: string,
+  clerkId?: string
+) {
   try {
-    const userId = await getDbUserId();
-
-    if (!userId) return;
+    const userId = await getDbUserId(clerkId);
+    if (!userId) return { success: false, error: "User not found" };
     if (!content) throw new Error("Content is required");
 
     const post = await prisma.post.findUnique({
@@ -156,11 +158,8 @@ export async function createComment(postId: string, content: string) {
 
     if (!post) throw new Error("Post not found");
 
-    // Create comment and notification in a transaction
     const [comment] = await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
-        // we use tx to create a transaction and after this line we use tx insted of prisma as we want both the functions to execute simultaneously
-        // Create comment first
         const newComment = await tx.comment.create({
           data: {
             content,
@@ -169,7 +168,6 @@ export async function createComment(postId: string, content: string) {
           },
         });
 
-        // Create notification if commenting on someone else's post
         if (post.authorId !== userId) {
           await tx.notification.create({
             data: {
@@ -183,7 +181,7 @@ export async function createComment(postId: string, content: string) {
         }
 
         return [newComment];
-      },
+      }
     );
 
     revalidatePath(`/`);
@@ -211,7 +209,7 @@ export async function deletePost(postId: string) {
       where: { id: postId },
     });
 
-    revalidatePath("/"); // purge the cache
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete post:", error);
