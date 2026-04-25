@@ -57,10 +57,17 @@ export async function getUserbyClerkId(clerkId: string) {
     where: {
       clerkId, // we can also type clerkId: clerkId
     },
-    include: {
-      // we are basically getting the relationships of the user
+    select: {
+      id: true,
+      clerkId: true,
+      name: true,
+      username: true,
+      email: true,
+      image: true,
+      bio: true,
+      location: true,
+      website: true,
       _count: {
-        // we are using this to cout the parameters
         select: {
           followers: true,
           following: true,

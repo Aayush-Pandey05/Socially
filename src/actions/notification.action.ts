@@ -44,7 +44,16 @@ export async function getNotifications() {
       },
     });
 
-    return notifications;
+    return notifications.map((notification) => ({
+      ...notification,
+      createdAt: notification.createdAt.toISOString(),
+      comment: notification.comment
+        ? {
+            ...notification.comment,
+            createdAt: notification.comment.createdAt.toISOString(),
+          }
+        : null,
+    }));
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return [];
