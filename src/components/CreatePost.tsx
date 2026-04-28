@@ -20,18 +20,18 @@ function CreatePost() {
   const [showImageUpload, setShowImageUpload] = useState(false);
 
   const handleSubmit = async () => {
-    if(!content.trim() && !imageUrl) return;
+    if (!content.trim() && !imageUrl) return;
 
     setIsPosting(true);
 
     try {
       if (user) {
-        await syncUser(user);
+        await syncUser(user.id);
       }
 
       const result = await createPost(content, imageUrl, user?.id);
-      if(result?.success){
-        // reset the form 
+      if (result?.success) {
+        // reset the form
         setContent("");
         setImageUrl("");
         setShowImageUpload(false);
@@ -41,7 +41,7 @@ function CreatePost() {
     } catch (error) {
       console.error("Failed to create post:", error);
       toast.error("Failed to create post");
-    } finally{
+    } finally {
       setIsPosting(false);
     }
   };
@@ -65,13 +65,12 @@ function CreatePost() {
 
           {(showImageUpload || imageUrl) && (
             <div className="border rounded-lg p-4 ">
-              <ImageUpload 
+              <ImageUpload
                 endpoint="postImage"
                 value={imageUrl}
-                onChange={(url)=>{
+                onChange={(url) => {
                   setImageUrl(url);
-                  if(!url) setShowImageUpload(false);
-
+                  if (!url) setShowImageUpload(false);
                 }}
               />
             </div>
@@ -109,7 +108,6 @@ function CreatePost() {
               )}
             </Button>
           </div>
-
         </div>
       </CardContent>
     </Card>

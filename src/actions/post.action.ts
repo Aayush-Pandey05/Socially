@@ -8,7 +8,7 @@ import { Prisma } from "@/generated/prisma";
 export async function createPost(
   content: string,
   imageUrl?: string,
-  clerkId?: string
+  clerkId?: string,
 ) {
   try {
     const userId = await getDbUserId(clerkId);
@@ -144,7 +144,7 @@ export async function toggleLike(postId: string, clerkId?: string) {
 export async function createComment(
   postId: string,
   content: string,
-  clerkId?: string
+  clerkId?: string,
 ) {
   try {
     const userId = await getDbUserId(clerkId);
@@ -181,7 +181,7 @@ export async function createComment(
         }
 
         return [newComment];
-      }
+      },
     );
 
     revalidatePath(`/`);

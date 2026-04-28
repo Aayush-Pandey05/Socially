@@ -10,64 +10,49 @@ function buildUniqueUsername(base: string, clerkId: string) {
   return `${trimmedBase}_${suffix}`;
 }
 
-type ClerkUserPayload = {
-  id?: string;
-  clerkId?: string;
-  email?: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  username?: string | null;
-  imageUrl?: string | null;
-  primaryEmailAddress?: { emailAddress: string | null } | null;
-  emailAddresses?: Array<{ emailAddress: string }>;
-};
-
 // this will amke sure that this code will be running on the server
 
-export async function syncUser(fallbackUser?: ClerkUserPayload) {
+export async function syncUser(clerkId?: string) {
   try {
     const { userId } = await auth();
     const user = await currentUser();
 
-    const resolvedClerkId = userId ?? fallbackUser?.clerkId ?? fallbackUser?.id;
+    const resolvedClerkId = userId ?? clerkId;
     if (!resolvedClerkId) return null;
 
     const primaryEmail =
       user?.primaryEmailAddress?.emailAddress ||
-      user?.emailAddresses[0]?.emailAddress ||
-      fallbackUser?.primaryEmailAddress?.emailAddress ||
-      fallbackUser?.email ||
-      fallbackUser?.emailAddresses?.[0]?.emailAddress;
+      user?.emailAddresses[0]?.emailAddress;
     if (!primaryEmail) return null;
 
     const preferredBase =
       user?.username ??
-      fallbackUser?.username ??
       primaryEmail.split("@")[0] ??
       "user";
-    const candidateUsername = buildUniqueUsername(preferredBase, resolvedClerkId);
+    const candidateUsername = buildUniqueUsername(
+      preferredBase,
+      resolvedClerkId,
+    );
 
     const dbUser = await prisma.user.upsert({
       where: {
         clerkId: resolvedClerkId,
       },
       update: {
-        name:
-          `${user?.firstName || fallbackUser?.firstName || ""} ${
-            user?.lastName || fallbackUser?.lastName || ""
-          }`.trim(),
+        name: `${user?.firstName || ""} ${
+          user?.lastName || ""
+        }`.trim(),
         email: primaryEmail,
-        image: user?.imageUrl || fallbackUser?.imageUrl || null,
+        image: user?.imageUrl || null,
       },
       create: {
         clerkId: resolvedClerkId,
-        name:
-          `${user?.firstName || fallbackUser?.firstName || ""} ${
-            user?.lastName || fallbackUser?.lastName || ""
-          }`.trim(),
+        name: `${user?.firstName || ""} ${
+          user?.lastName || ""
+        }`.trim(),
         username: candidateUsername,
         email: primaryEmail,
-        image: user?.imageUrl || fallbackUser?.imageUrl || null,
+        image: user?.imageUrl || null,
       },
     });
 
@@ -118,7 +103,7 @@ export async function getDbUserId(clerkId?: string) {
 
   let user = await getUserbyClerkId(resolvedClerkId);
   if (!user) {
-    await syncUser({ clerkId: resolvedClerkId });
+    await syncUser(resolvedClerkId);
     user = await getUserbyClerkId(resolvedClerkId);
   }
   if (!user) {

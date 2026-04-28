@@ -40,7 +40,7 @@ function NotificationsPage() {
     const fetchNotifications = async () => {
       try {
         if (user) {
-          await syncUser(user);
+          await syncUser(user.id);
         }
 
         const data = await getNotifications(user?.id);

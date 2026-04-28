@@ -16,7 +16,12 @@ import { Avatar, AvatarImage } from "./ui/avatar";
 import { DeleteAlertDialog } from "./DeleteAlertDialog";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "./ui/button";
-import { HeartIcon, LogInIcon, MessageCircleIcon, SendIcon } from "lucide-react";
+import {
+  HeartIcon,
+  LogInIcon,
+  MessageCircleIcon,
+  SendIcon,
+} from "lucide-react";
 import { Textarea } from "./ui/textarea";
 
 type Posts = Awaited<ReturnType<typeof getPosts>>; // we are making the type of posts because we want the count of likes
@@ -29,7 +34,7 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
   const [isLiking, setIsLiking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [hasLiked, setHasLiked] = useState(
-    post.likes.some((like: any) => like.userId === dbUserId)
+    post.likes.some((like: any) => like.userId === dbUserId),
   ); // If the current user's ID (dbUserId) is found among the post’s likes, some() returns true.
   const [optimisticLikes, setOptimisticLikes] = useState(post._count.likes);
   const [showComments, setShowComments] = useState(false); // to show the comments on the post
@@ -42,9 +47,9 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
     try {
       setIsLiking(true);
       if (user) {
-        await syncUser(user);
+        await syncUser(user.id);
       }
-      setHasLiked((prev:any) => !prev); // this will take the previous state and toggle it
+      setHasLiked((prev: any) => !prev); // this will take the previous state and toggle it
       setOptimisticLikes((prev: any) => prev + (hasLiked ? -1 : 1)); // if the user has already liked the post than we will remove the like on the second click
       const result = await toggleLike(post.id, user?.id);
       if (!result?.success) {
@@ -63,7 +68,7 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
     try {
       setIscommenting(true);
       if (user) {
-        await syncUser(user);
+        await syncUser(user.id);
       }
       const result = await createComment(post.id, newComment, user?.id);
       if (result?.success) {
@@ -185,7 +190,7 @@ function POstCard({ post, dbUserId }: { post: Post; dbUserId: string | null }) {
               variant="ghost"
               size="sm"
               className="text-muted-foreground gap-2 hover:text-blue-500"
-              onClick={() => setShowComments((prev:any) => !prev)}
+              onClick={() => setShowComments((prev: any) => !prev)}
             >
               <MessageCircleIcon
                 className={`size-5 ${

@@ -15,10 +15,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, EditIcon, FileTextIcon, HeartIcon, LinkIcon, MapPinIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  EditIcon,
+  FileTextIcon,
+  HeartIcon,
+  LinkIcon,
+  MapPinIcon,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import POstCard from "@/components/POstCard";
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,7 +81,7 @@ function ProfilePageClient({
 
     try {
       setIsUpdatingFollow(true);
-      await syncUser(currentUser);
+      await syncUser(currentUser.id);
       const result = await toggleFollow(user.id, currentUser.id);
       if (!result?.success) {
         throw new Error(result?.error || "Failed to update the follow status");
@@ -134,7 +147,7 @@ function ProfilePageClient({
 
                 {/* "FOLLOW & EDIT PROFILE" BUTTONS */}
                 {!currentUser ? (
-                  <SignInButton  mode="modal">
+                  <SignInButton mode="modal">
                     <Button className="w-full mt-4">Follow</Button>
                   </SignInButton>
                 ) : isOwnProfile ? (
@@ -214,7 +227,7 @@ function ProfilePageClient({
           <TabsContent value="posts" className="mt-6">
             <div className="space-y-6">
               {posts.length > 0 ? (
-                posts.map((post:any) => (
+                posts.map((post: any) => (
                   <POstCard key={post.id} post={post} dbUserId={user.id} />
                 ))
               ) : (
@@ -228,7 +241,7 @@ function ProfilePageClient({
           <TabsContent value="likes" className="mt-6">
             <div className="space-y-6">
               {likedPosts.length > 0 ? (
-                likedPosts.map((post:any) => (
+                likedPosts.map((post: any) => (
                   <POstCard key={post.id} post={post} dbUserId={user.id} />
                 ))
               ) : (
